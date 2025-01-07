@@ -49,8 +49,8 @@ def hello_orchestrator(context):
         # ]
 
         tasks = [
-            context.call_activity("heavy_computation")
-            for _ in range(20)  # Adjust the number of tasks to increase load
+            context.call_activity("heavy_computation", input_data)
+            for input_data in range(5000)  # Adjust the number of tasks to increase load
         ]
 
         # Wait for all tasks to complete
@@ -90,12 +90,12 @@ def calculate_primes(limit: int):
 
 # Activity function
 @myApp.activity_trigger(input_name="input")
-def heavy_computation(input: str):
+def heavy_computation(input: int):
     with tracer.start_as_current_span("heavy_computation", kind=SpanKind.INTERNAL) as span:
         print("Starting heavy computation...")
 
         # Allocate a smaller matrix (approx 0.25GB RAM usage)
-        size = 6250  # Adjust this value if needed (size * size * 8 bytes ≈ 0.25GB for float64)
+        size = 2000  # Adjust this value if needed (size * size * 8 bytes ≈ 0.25GB for float64)
         print(f"Creating a {size}x{size} matrix...")
 
         # Create smaller random matrices

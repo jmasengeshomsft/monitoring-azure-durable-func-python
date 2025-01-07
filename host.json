@@ -15,7 +15,7 @@
   },
   "telemetryMode": "OpenTelemetry",
   "durableTask": {
-    "maxConcurrentActivityFunctions": 4,
-    "maxConcurrentOrchestratorFunctions": 1
+    "maxConcurrentActivityFunctions": 40,
+    "maxConcurrentOrchestratorFunctions": 2
   }
 }
