@@ -6,3 +6,6 @@ azure-functions
 azure-functions-durable
 azure.monitor.opentelemetry
 numpy
+azure.identity
+azure-storage-queue
+azure-data-tables
