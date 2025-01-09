@@ -1,20 +1,18 @@
-import azure.functions as func
+import datetime
+import json
+import os
+import time
+
 import azure.durable_functions as df
+import azure.functions as func
+import numpy as np
+from azure.data.tables import TableServiceClient, UpdateMode
+from azure.identity import DefaultAzureCredential
 from azure.monitor.opentelemetry import configure_azure_monitor
+from azure.storage.queue import (BinaryBase64DecodePolicy,
+                                 BinaryBase64EncodePolicy, QueueServiceClient)
 from opentelemetry import trace
 from opentelemetry.trace import SpanKind
-import numpy as np
-import time
-import datetime
-from azure.storage.queue import (
-        QueueServiceClient,
-        BinaryBase64EncodePolicy,
-        BinaryBase64DecodePolicy
-)
-from azure.data.tables import TableServiceClient, UpdateMode
-import os
-from azure.identity import DefaultAzureCredential
-import json
 
 # Configure Azure Monitor with OpenTelemetry
 configure_azure_monitor()
@@ -112,16 +110,26 @@ def create_message_timer(mytimer: func.TimerRequest) -> None:
     """
     utc_timestamp = datetime.datetime.utcnow().replace(
         tzinfo=datetime.timezone.utc).isoformat()
-    
-    
 
     with tracer.start_as_current_span("create_message_timer", kind=SpanKind.SERVER) as span:
+
+        # Use DefaultAzureCredential to authenticate with managed identity
         credential = DefaultAzureCredential()
 
-        table_service = TableServiceClient(endpoint="https://matrixmathconsumptionfun.table.core.windows.net", credential=credential)
-        table_client = table_service.get_table_client(table_name="hardwarebugs")
-        queue_service = QueueServiceClient(account_url="https://matrixmathconsumptionfun.queue.core.windows.net", credential=credential)
-        queue_client = queue_service.get_queue_client(queue="bugmessages")
+        storage_account_name = os.getenv("STORAGE_ACCOUNT_NAME", "matrixmathconsumptionfun")
+        storage_table_name = os.getenv("STORAGE_TABLE_NAME", "hardwarebugs")
+        storage_queue_name = os.getenv("STORAGE_QUEUE_NAME", "bugmessages")
+
+        table_service = TableServiceClient(
+            endpoint=f"https://{storage_account_name}.table.core.windows.net", 
+            credential=credential
+        )
+        table_client = table_service.get_table_client(table_name=storage_table_name)
+        queue_service = QueueServiceClient(
+            account_url=f"https://{storage_account_name}.queue.core.windows.net", 
+            credential=credential
+        )
+        queue_client = queue_service.get_queue_client(queue=storage_queue_name)
 
         queue_client.message_encode_policy = BinaryBase64EncodePolicy()
         queue_client.message_decode_policy = BinaryBase64DecodePolicy()
@@ -168,10 +176,17 @@ async def process_message(msg: func.QueueMessage):
             # Use DefaultAzureCredential to authenticate with managed identity
             credential = DefaultAzureCredential()
 
-            table_service = TableServiceClient(endpoint="https://matrixmathconsumptionfun.table.core.windows.net", credential=credential)
-            table_client = table_service.get_table_client(table_name="hardwarebugs")
+            storage_table_name = os.getenv("STORAGE_TABLE_NAME", "hardwarebugs")
+            storage_account_name = os.getenv("STORAGE_ACCOUNT_NAME", "matrixmathconsumptionfun")
+
+            table_service = TableServiceClient(
+                endpoint=f"https://{storage_account_name}.table.core.windows.net",
+                credential=credential
+            )
+            table_client = table_service.get_table_client(table_name=storage_table_name)
 
             message_content = msg.get_body().decode('utf-8')
+
             # Log the message content using OpenTelemetry
             trace.get_current_span().add_event("Processing message", {"message_content": message_content})
 
