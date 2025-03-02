@@ -9,3 +9,4 @@ numpy
 azure.identity
 azure-storage-queue
 azure-data-tables
+openai
